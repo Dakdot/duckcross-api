@@ -1,0 +1,27 @@
+# Node modules
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Logs
+logs
+*.log
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript compiled files
+dist/
+build/
+
+# Environment variables
+.env
+
+# Docker files
+Dockerfile
+Dockerfile.*
+
+# Miscellaneous
+*.swp
+*.swo
+*.DS_Store
