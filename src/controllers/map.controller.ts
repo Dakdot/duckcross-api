@@ -7,7 +7,55 @@ interface ParameterError {
   parameter: string;
   error: string;
 }
+export const searchHandler: express.RequestHandler = async (req, res) => { // note to self: this accecpts stations/search?query=search term
+  const { q } = req.query;
+  const queryString = q as string;
+  const matchingStations = await db.stop.findMany({
+    where: {
+         name: { 
+          contains: queryString, 
+          mode: 'insensitive' 
+        } 
+    },
+    select: {
+      name: true
+    },
+    // Limit the results
+    take: 10
+  });
+  res.status(200).json({ queryString,matchingStations });
+};
 
+export const getDetails: express.RequestHandler = async (req, res) => {
+  const { station} = req.body;
+  const stationInfo = await db.stop.findMany({
+    take: 1,
+    where:{
+      id: {
+        equals: station,
+        mode : 'insensitive'
+      }
+    },
+    select: {
+      name: true,
+      lat : true,
+      lon : true
+    }
+  });
+  const agencyinfo = await db.agency.findMany({
+    take: 1,
+    where: {
+      id: {
+        equals: "MTA NYCT"
+        }
+      },
+    select: {
+      name: true,
+      url : true
+    }
+  });
+  res.status(200).json({ stationInfo , agencyinfo});
+};
 export const getStations: express.RequestHandler = async (
   req: Request,
   res: Response
