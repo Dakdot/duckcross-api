@@ -234,13 +234,13 @@ export const searchHandler: express.RequestHandler = async (req, res) => {
 };
 
 export const getDetails: express.RequestHandler = async (req, res) => {
-  const { station } = req.body;
+  const { station } = req.query;
 
   const stationInfo = await db.stop.findMany({
     take: 1,
     where: {
       id: {
-        equals: station,
+        equals: String(station),
         mode: "insensitive",
       },
     },
