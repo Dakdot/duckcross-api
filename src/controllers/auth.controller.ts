@@ -30,6 +30,11 @@ export const register: express.RequestHandler = async (
         email,
         password: hashedPassword,
         role,
+        profile: {
+          create: {
+            name,
+          },
+        },
       },
     });
 
@@ -78,6 +83,9 @@ export const login: express.RequestHandler = async (
     // Find user
     const user = await db.user.findUnique({
       where: { email },
+      include: {
+        profile: true,
+      },
     });
 
     if (!user) {
@@ -130,7 +138,7 @@ export const renewAccessToken: express.RequestHandler = async (
     const token = req.cookies.refreshToken || req.body.refreshToken;
 
     if (!token) {
-      res.status(401).json({ error: "Refresh token not found" });
+      res.status(404).json({ valid: false, error: "Refresh token not found" });
       return;
     }
 
@@ -138,7 +146,7 @@ export const renewAccessToken: express.RequestHandler = async (
     const { valid, id } = verifyRefreshToken(token);
 
     if (!valid) {
-      res.status(401).json({ error: "Invalid refresh token" });
+      res.status(401).json({ valid: false, error: "Invalid refresh token" });
       return;
     }
 
@@ -151,7 +159,9 @@ export const renewAccessToken: express.RequestHandler = async (
     });
 
     if (!user) {
-      res.status(401).json({ error: "Refresh token invalid or expired" });
+      res
+        .status(401)
+        .json({ valid: false, error: "Refresh token invalid or expired" });
       return;
     }
 
@@ -176,9 +186,11 @@ export const renewAccessToken: express.RequestHandler = async (
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, TODO: Make this correspond with configured age
     });
 
-    res.json({ accessToken });
+    res.json({ valid: true, token: accessToken });
   } catch (err) {
-    res.status(500).json({ error: "Renewal of access token failed" });
+    res
+      .status(500)
+      .json({ valid: false, error: "Renewal of access token failed" });
   }
 };
 
@@ -214,5 +226,53 @@ export const logout: express.RequestHandler = async (
     res.status(200).json({ message: "Logout successful" });
   } catch (err) {
     res.status(500).json({ error: "Logout failed" });
+  }
+};
+
+export const getAuthenticatedUser: express.RequestHandler = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    // Get refresh token form cookie or request body
+    const token = req.cookies.refreshToken || req.body.refreshToken;
+
+    if (!token) {
+      res.status(401).json({ valid: false, error: "Refresh token not found" });
+      return;
+    }
+
+    // Verify refresh token
+    const { valid, id } = verifyRefreshToken(token);
+
+    if (!valid) {
+      res.status(401).json({ valid: false, error: "Invalid refresh token" });
+      return;
+    }
+
+    // Find user with the refresh token
+    const user = await db.user.findFirst({
+      where: {
+        id,
+        refreshToken: token,
+      },
+      include: {
+        profile: true,
+      },
+    });
+
+    if (!user) {
+      res
+        .status(401)
+        .json({ valid: false, error: "Refresh token invalid or expired" });
+      return;
+    }
+
+    // Remove password from response
+    const { password, refreshToken, ...userData } = user;
+
+    res.status(200).json({ user: userData });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to get user" });
   }
 };
