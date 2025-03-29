@@ -36,6 +36,9 @@ export const register: express.RequestHandler = async (
           },
         },
       },
+      include: {
+        profile: true,
+      },
     });
 
     // Generate tokens
