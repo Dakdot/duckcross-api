@@ -6,3 +6,5 @@ dist
 .DS_Store
 # Mac system files
 # Ignore macOS system files 
+
+prisma

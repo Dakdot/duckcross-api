@@ -1,23 +1,4 @@
-# Build stage
-FROM node:lts-alpine3.21 AS build
-
-# Set working directory
-WORKDIR /
-
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy the rest of the application code
-COPY . .
-
-# Build TypeScript code
-RUN npm run build
-
-# Production stage
-FROM node:lts-alpine3.21 AS prod
+FROM node:lts-alpine3.21
 
 WORKDIR /app
 
@@ -25,10 +6,10 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
-# Copy built app from build stage
-COPY --from=build /dist ./dist
+# Copy local dist folder
+COPY dist ./dist
 
 # Copy Prisma files
 COPY prisma ./prisma

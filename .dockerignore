@@ -11,7 +11,7 @@ logs
 jspm_packages/
 
 # TypeScript compiled files
-dist/
+
 build/
 
 # Environment variables
