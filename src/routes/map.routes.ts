@@ -7,5 +7,6 @@ router.post("/stations", getStations);
 router.post("/stations/nearest", getNearestStations);
 router.post("/stations/details", getDetails);
 router.post("/stations/search", searchHandler);
-router.post("/trips", findPath);
+router.post("/stations/route", findPath);
+//router.post("/trips", findPath);
 export default router;
