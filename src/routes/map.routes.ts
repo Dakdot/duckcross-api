@@ -9,9 +9,9 @@ import {
 
 const router = express.Router();
 
-router.post("/stations", getStations);
-router.post("/stations/nearest", getNearestStations);
-router.post("/stations/details", getDetails);
-router.post("/stations/search", searchHandler);
-router.post("/stations/route", findPath);
+router.get("/stations", getStations);
+router.get("/stations/nearest", getNearestStations);
+router.get("/stations/details", getDetails);
+router.get("/stations/search", searchHandler);
+router.get("/stations/route", findPath);
 export default router;

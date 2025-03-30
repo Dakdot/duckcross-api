@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import express, { Request, Response } from "express";
 import { TransitRouteFinder as TransitRouteFinderImpl } from "../transit-route-finder";
+import { z } from "zod";
 const db = new PrismaClient();
 
 interface ParameterError {
@@ -200,56 +201,28 @@ export const getStations: express.RequestHandler = async (
   res: Response
 ) => {
   const { latLowerBound, latUpperBound, lonLowerBound, lonUpperBound } =
-    req.body;
+    req.query;
 
-  let badParams: ParameterError[] = [];
+  const schema = z.object({
+    latLowerBound: z.coerce.number().gte(-90).lte(90),
+    latUpperBound: z.coerce.number().gte(-90).lte(90),
+    lonLowerBound: z.coerce.number().gte(-180).lte(180),
+    lonUpperBound: z.coerce.number().gte(-180).lte(180),
+  });
 
-  // TODO: Extract this validation logic into a helper function
-  if (!latLowerBound)
-    badParams.push({ parameter: "latLowerBound", error: "Missing parameter" });
-  if (!latUpperBound)
-    badParams.push({ parameter: "latUpperBound", error: "Missing parameter" });
-  if (!lonLowerBound)
-    badParams.push({ parameter: "lonLowerBound", error: "Missing parameter" });
-  if (!lonUpperBound)
-    badParams.push({ parameter: "lonUpperBound", error: "Missing parameter" });
+  const { success, data, error } = schema.safeParse({
+    latLowerBound,
+    latUpperBound,
+    lonLowerBound,
+    lonUpperBound,
+  });
 
-  if (latLowerBound > latUpperBound)
-    badParams.push({
-      parameter: "latLowerBound",
-      error: "Lower bound must be less than upper bound",
-    });
-  if (lonLowerBound > lonUpperBound)
-    badParams.push({
-      parameter: "lonLowerBound",
-      error: "Lower bound must be less than upper bound",
-    });
-
-  if (latLowerBound < -90 || latLowerBound > 90)
-    badParams.push({
-      parameter: "latLowerBound",
-      error: "Latitude must be between -90 and 90",
-    });
-  if (latUpperBound < -90 || latUpperBound > 90)
-    badParams.push({
-      parameter: "latUpperBound",
-      error: "Latitude must be between -90 and 90",
-    });
-  if (lonLowerBound < -180 || lonLowerBound > 180)
-    badParams.push({
-      parameter: "lonLowerBound",
-      error: "Longitude must be between -180 and 180",
-    });
-  if (lonUpperBound < -180 || lonUpperBound > 180)
-    badParams.push({
-      parameter: "lonUpperBound",
-      error: "Longitude must be between -180 and 180",
-    });
-
-  if (badParams.length > 0) {
+  if (!success || !data || error) {
     res.status(400).json({
-      error: "One or more parameters failed validation",
-      description: badParams,
+      error: {
+        message: "One or more parameters failed validation",
+        issues: error.issues,
+      },
     });
     return;
   }
@@ -257,53 +230,44 @@ export const getStations: express.RequestHandler = async (
   const stations = await db.stop.findMany({
     where: {
       lat: {
-        gte: latLowerBound,
-        lte: latUpperBound,
+        gte: data.latLowerBound,
+        lte: data.latUpperBound,
       },
       lon: {
-        gte: lonLowerBound,
-        lte: lonUpperBound,
+        gte: data.lonLowerBound,
+        lte: data.latUpperBound,
       },
       location_type: 1,
     },
   });
 
-  res.status(200).json({ stations });
+  res.status(200).json({ results: stations, length: stations.length });
 };
 
 export const getNearestStations: express.RequestHandler = async (
   req: Request,
   res: Response
 ) => {
-  let { lat, lon, count = 5 } = req.body;
+  const { lat, lon, count = 5 } = req.query;
 
-  let badParams: ParameterError[] = [];
+  const schema = z.object({
+    lat: z.coerce.number().gte(-90).lte(90),
+    lon: z.coerce.number().gte(-90).lte(90),
+    count: z.coerce.number().gte(1).lte(20),
+  });
 
-  if (!lat) badParams.push({ parameter: "lat", error: "Missing parameter" });
-  if (!lon) badParams.push({ parameter: "lon", error: "Missing parameter" });
-  if (count < 1)
-    badParams.push({
-      parameter: "count",
-      error: "Count must be greater than 0",
-    });
-  if (count > 20)
-    badParams.push({ parameter: "count", error: "Count must be less than 20" });
+  const { success, data, error } = schema.safeParse({
+    lat,
+    lon,
+    count,
+  });
 
-  if (lat < -90 || lat > 90)
-    badParams.push({
-      parameter: "lat",
-      error: "Latitude must be between -90 and 90",
-    });
-  if (lon < -180 || lon > 180)
-    badParams.push({
-      parameter: "lon",
-      error: "Longitude must be between -180 and 180",
-    });
-
-  if (badParams.length > 0) {
+  if (!success || !data || error) {
     res.status(400).json({
-      error: "One or more parameters failed validation",
-      description: badParams,
+      error: {
+        message: "One or more parameters failed validation",
+        issues: error.issues,
+      },
     });
     return;
   }
@@ -316,13 +280,13 @@ export const getNearestStations: express.RequestHandler = async (
       lon,
       ST_Distance(
         ST_MakePoint(lon, lat)::geography,
-        ST_MakePoint(${lon}, ${lat})::geography
+        ST_MakePoint(${data.lon}, ${data.lat})::geography
       ) AS distance_meters
     FROM 
       "Stop"
     ORDER BY 
       distance_meters ASC
-    LIMIT ${count};
+    LIMIT ${data.count};
   `;
 
   res.status(200).json({ result });
