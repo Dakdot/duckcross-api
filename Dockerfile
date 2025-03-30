@@ -1,4 +1,20 @@
-FROM node:lts-alpine3.21
+# Build stage
+FROM node:lts-alpine3.21 AS build
+
+WORKDIR /
+
+COPY package*.json ./
+
+RUN npm ci
+
+# Copy the rest of the application code
+COPY . .
+
+# Build TypeScript
+RUN npm run build
+
+# Production stage
+FROM node:lts-alpine3.21 AS prod
 
 WORKDIR /app
 
