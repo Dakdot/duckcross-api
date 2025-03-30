@@ -22,10 +22,10 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev
+RUN npm ci --only=production
 
 # Copy local dist folder
-COPY dist ./dist
+COPY --from=build /dist ./dist 
 
 # Copy Prisma files
 COPY prisma ./prisma

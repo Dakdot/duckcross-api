@@ -1,0 +1,11 @@
+name: Build docker image
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: build
+        run: docker build -t Dakdot/duckcross-api:latest .
