@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Agency {
+  id        String   @id
+  name      String
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  address   String?
+  lang      String
+  timezone  String
+  url       String
+  Route     Route[]
+}
+
+model Calendar {
+  id         String   @id
+  monday     Boolean  @default(false)
+  tuesday    Boolean  @default(false)
+  wednesday  Boolean  @default(false)
+  thursday   Boolean  @default(false)
+  friday     Boolean  @default(false)
+  saturday   Boolean  @default(false)
+  sunday     Boolean  @default(false)
+  start_date DateTime
+  end_date   DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  Trip       Trip[]
+}
+
+model Profile {
+  id        String   @id
+  name      String?
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model Route {
+  id          String @id
+  short_name  String
+  long_name   String
+  type        Int
+  description String
+  url         String
+  color       String
+  text_color  String
+  agency_id   String
+  Agency      Agency @relation(fields: [agency_id], references: [id])
+  Trip        Trip[]
+}
+
+model Shape {
+  id         String       @id
+  ShapePoint ShapePoint[]
+  Trip       Trip[]
+}
+
+model ShapePoint {
+  id        String   @id
+  shape_id  String
+  lat       Float
+  lon       Float
+  sequence  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Shape     Shape    @relation(fields: [shape_id], references: [id])
+}
+
+model Stop {
+  id                                   String     @id
+  name                                 String
+  lat                                  Float
+  lon                                  Float
+  createdAt                            DateTime   @default(now())
+  updatedAt                            DateTime
+  location_type                        Int?
+  parent_stop_id                       String?
+  Stop                                 Stop?      @relation("StopToStop", fields: [parent_stop_id], references: [id])
+  other_Stop                           Stop[]     @relation("StopToStop")
+  StopTime                             StopTime[]
+  Transfer_Transfer_from_stop_idToStop Transfer[] @relation("Transfer_from_stop_idToStop")
+  Transfer_Transfer_to_stop_idToStop   Transfer[] @relation("Transfer_to_stop_idToStop")
+}
+
+model StopTime {
+  id             String @id
+  arrival_time   String
+  departure_time String
+  stop_id        String
+  stop_sequence  Int
+  trip_id        String
+  Stop           Stop   @relation(fields: [stop_id], references: [id])
+  Trip           Trip   @relation(fields: [trip_id], references: [id])
+}
+
+model Transfer {
+  id                               String @id
+  from_stop_id                     String
+  to_stop_id                       String
+  transfer_type                    Int
+  min_transfer_time                Int?
+  Stop_Transfer_from_stop_idToStop Stop   @relation("Transfer_from_stop_idToStop", fields: [from_stop_id], references: [id])
+  Stop_Transfer_to_stop_idToStop   Stop   @relation("Transfer_to_stop_idToStop", fields: [to_stop_id], references: [id])
+}
+
+model Trip {
+  id           String     @id
+  headsign     String
+  direction_id Int?
+  route_id     String
+  service_id   String?
+  shape_id     String?
+  StopTime     StopTime[]
+  Route        Route      @relation(fields: [route_id], references: [id])
+  Calendar     Calendar?  @relation(fields: [service_id], references: [id])
+  Shape        Shape?     @relation(fields: [shape_id], references: [id])
+}
+
+model User {
+  id                    String    @id
+  email                 String    @unique
+  password              String
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime
+  refreshToken          String?
+  role                  String    @default("user")
+  refreshTokenCreatedAt DateTime?
+  Profile               Profile?
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
