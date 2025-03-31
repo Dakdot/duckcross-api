@@ -7,7 +7,16 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v4
-      - name: build
-        run: docker build -t docker.tjausa.mooo.com/duckcross-api:latest .
-      - name: push image to registry
-        run: docker push docker.tjausa.mooo.com/duckcross-api:latest
+      - name: setup docker buildx
+        id: buildx
+        with:
+          version: latest
+        uses: docker/setup-buildx-action@v2
+      - name: build multiarch (buildx) and push
+        run: |
+          docker buildx build \
+          --push \
+          --platform linux/arm64,linux/amd64 \
+          --tag docker.tjausa.mooo.com/duckcross-api:latest \
+          --tag docker.tjausa.mooo.com/duckcross-api:$(date +%Y%m%d%H%M) \
+          .
