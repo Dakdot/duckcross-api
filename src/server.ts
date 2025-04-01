@@ -12,9 +12,9 @@ import mapRoutes from "./routes/map.routes";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-console.log(`Server starting on port ${PORT}...`);
+console.log(`Server starting...`);
 console.log(`Node environment is ${process.env.NODE_ENV?.toUpperCase()}`);
-console.log(`Database URL is ${process.env.DB_URL}`);
+console.log(`Database URL is ${process.env.DATABASE_URL}`);
 console.log(`CORS origin is ${process.env.CORS_ORIGIN}`);
 
 app.use(
