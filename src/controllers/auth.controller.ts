@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import bcrpyt from "bcrypt";
 import { generateTokens, verifyRefreshToken } from "../utils/token.utils";
+import * as z from "zod";
 
 const db = new PrismaClient();
 
@@ -83,6 +84,23 @@ export const login: express.RequestHandler = async (
   try {
     const { email, password } = req.body;
 
+    const schema = z.object({
+      email: z.string(),
+      password: z.string(),
+    });
+
+    const { success, data, error } = schema.safeParse({ email, password });
+
+    if (!data || !success || error) {
+      res
+        .status(400)
+        .json({
+          error: "One or more parameters failed validation",
+          description: error.issues,
+        });
+      return;
+    }
+
     // Find user
     const user = await db.user.findUnique({
       where: { email },
@@ -128,7 +146,8 @@ export const login: express.RequestHandler = async (
       accessToken,
     });
   } catch (err) {
-    res.status(500).json({ error: "Login failed" });
+    res.status(500).json({ error: `Login failed` });
+    console.error(err);
   }
 };
 
