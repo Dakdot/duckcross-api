@@ -37,13 +37,13 @@ export const findPath: express.RequestHandler = async (req, res) => {
     if (!fromStopId || !toStopId) {
       res.status(400).json({
         success: false,
-        message: 'Both "from" and "to" stop IDs are required',
+        message: "Both from and to stop IDs are required",
       });
       return;
     }
 
     console.log(
-      `Finding routes from stop "${fromStopId}" to stop "${toStopId}"`
+      `Finding routes from stop '${fromStopId}' to stop '${toStopId}'`
     );
 
     // Create and initialize the route finder
@@ -61,7 +61,7 @@ export const findPath: express.RequestHandler = async (req, res) => {
     if (fromStopName === fromStopId) {
       res.status(404).json({
         success: false,
-        message: `Origin stop ID "${fromStopId}" not found`,
+        message: `Origin stop ID '${fromStopId}' not found`,
       });
       return;
     }
@@ -69,7 +69,7 @@ export const findPath: express.RequestHandler = async (req, res) => {
     if (toStopName === toStopId) {
       res.status(404).json({
         success: false,
-        message: `Destination stop ID "${toStopId}" not found`,
+        message: `Destination stop ID '${toStopId}' not found`,
       });
       return;
     }
@@ -121,7 +121,7 @@ export const findPath: express.RequestHandler = async (req, res) => {
     } else {
       res.status(404).json({
         success: false,
-        message: `No routes found between stop "${fromStopId}" and stop "${toStopId}"`,
+        message: `No routes found between stop '${fromStopId}' and stop '${toStopId}'`,
         from: {
           id: fromStopId,
           name: fromStopName,
@@ -166,13 +166,28 @@ export const searchHandler: express.RequestHandler = async (req, res) => {
 };
 
 export const getDetails: express.RequestHandler = async (req, res) => {
-  const { station } = req.query;
+  const { id } = req.query;
 
-  const stationInfo = await db.stop.findMany({
-    take: 1,
+  const schema = z.object({
+    id: z.string().min(1),
+  });
+
+  const { success, data, error } = schema.safeParse({ id });
+
+  if (!success || !data || error) {
+    res.status(400).json({
+      error: {
+        message: "One or more parameters failed validation",
+        issues: error.issues,
+      },
+    });
+    return;
+  }
+
+  const station = await db.stop.findFirst({
     where: {
       id: {
-        equals: String(station),
+        equals: data.id,
         mode: "insensitive",
       },
     },
@@ -182,8 +197,17 @@ export const getDetails: express.RequestHandler = async (req, res) => {
       lon: true,
     },
   });
-  const agencyinfo = await db.agency.findMany({
-    take: 1,
+
+  if (!station) {
+    res.status(404).json({
+      error: {
+        message: `No station found with ID '${data.id}'`,
+      },
+    });
+    return;
+  }
+
+  const agency = await db.agency.findFirst({
     where: {
       id: {
         equals: "MTA NYCT",
@@ -192,9 +216,10 @@ export const getDetails: express.RequestHandler = async (req, res) => {
     select: {
       name: true,
       url: true,
+      timezone: true,
     },
   });
-  res.status(200).json({ stationInfo, agencyinfo });
+  res.status(200).json({ result: { station, agency } });
 };
 export const getStations: express.RequestHandler = async (
   req: Request,
