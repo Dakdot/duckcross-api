@@ -92,12 +92,10 @@ export const login: express.RequestHandler = async (
     const { success, data, error } = schema.safeParse({ email, password });
 
     if (!data || !success || error) {
-      res
-        .status(400)
-        .json({
-          error: "One or more parameters failed validation",
-          description: error.issues,
-        });
+      res.status(400).json({
+        error: "One or more parameters failed validation",
+        description: error.issues,
+      });
       return;
     }
 
@@ -157,15 +155,15 @@ export const renewAccessToken: express.RequestHandler = async (
 ) => {
   try {
     // Get refresh token form cookie or request body
-    const token = req.cookies.refreshToken || req.body.refreshToken;
+    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
-    if (!token) {
+    if (!refreshToken) {
       res.status(404).json({ valid: false, error: "Refresh token not found" });
       return;
     }
 
     // Verify refresh token
-    const { valid, id } = verifyRefreshToken(token);
+    const { valid, id } = verifyRefreshToken(refreshToken);
 
     if (!valid) {
       res.status(401).json({ valid: false, error: "Invalid refresh token" });
@@ -176,7 +174,7 @@ export const renewAccessToken: express.RequestHandler = async (
     const user = await db.user.findFirst({
       where: {
         id,
-        refreshToken: token,
+        refreshToken,
       },
     });
 
