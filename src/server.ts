@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
@@ -30,6 +30,11 @@ if (process.env.NODE_ENV === "production") app.use(morgan("combined"));
 else app.use(morgan("dev"));
 
 // Routes
+// Basic GET route at root to enable checking if API is online
+app.get("/", async (req: Request, res: Response) => {
+  res.status(200).end();
+});
+
 app.use("/auth", authRoutes);
 app.use("/users", verifyToken, userRoutes); // uses verifyToken middleware
 app.use("/map", mapRoutes); // unprotected for now
