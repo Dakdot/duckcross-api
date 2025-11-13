@@ -1,0 +1,318 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Agency {
+    id       String  @id @default(cuid())
+    name     String
+    url      String
+    timezone String
+    phone    String?
+    lang     String?
+    fare_url String?
+    email    String?
+
+    routes  Route[]
+    alerts  Alert[]
+    reports Report[]
+}
+
+model Route {
+    id                 String  @id @default(cuid())
+    agency             Agency  @relation(fields: [agency_id], references: [id])
+    agency_id          String
+    short_name         String?
+    long_name          String?
+    description        String?
+    type               Int
+    url                String?
+    color              String?
+    text_color         String?
+    sort_order         Int?
+    continuous_pickup  Int?
+    continuous_dropoff Int?
+    network_id         String?
+
+    trips  Trip[]
+    alerts Alert[]
+}
+
+model Service {
+    id   String  @id @default(cuid())
+    name String?
+
+    monday    Boolean
+    tuesday   Boolean
+    wednesday Boolean
+    thursday  Boolean
+    friday    Boolean
+    saturday  Boolean
+    sunday    Boolean
+
+    start_date DateTime @db.Date
+    end_date   DateTime @db.Date
+
+    exceptions ServiceException[]
+    trips      Trip[]
+}
+
+model ServiceException {
+    service_id String
+    service    Service @relation(fields: [service_id], references: [id])
+
+    type Int
+
+    date DateTime @db.Date
+
+    @@id([service_id, date])
+}
+
+model Trip {
+    id String @id @default(cuid())
+
+    route    Route  @relation(fields: [route_id], references: [id])
+    route_id String
+
+    service    Service @relation(fields: [service_id], references: [id])
+    service_id String
+
+    shape    Shape?  @relation(fields: [shape_id], references: [id])
+    shape_id String?
+
+    trip_headsign         String?
+    trip_short_name       String?
+    direction_id          Int?
+    block_id              Int?
+    // Add shapes
+    wheelchair_accessible Int?
+    bikes_allowed         Int?
+
+    stop_times StopTime[]
+    alerts     Alert[]
+    reports    Report[]
+}
+
+model Stop {
+    id            String  @id @default(cuid())
+    code          String?
+    name          String?
+    description   String?
+    latitude      Float?
+    longitude     Float?
+    zone_id       String?
+    url           String?
+    location_type Int?
+    timezone      String?
+
+    child_stations    Stop[]  @relation(name: "ParentChildStations")
+    parent_station    Stop?   @relation(fields: [parent_station_id], references: [id], name: "ParentChildStations")
+    parent_station_id String?
+
+    stop_times StopTime[]
+    alerts     Alert[]
+    reports    Report[]
+}
+
+model StopTime {
+    trip    Trip   @relation(fields: [trip_id], references: [id])
+    trip_id String
+
+    arrival_time   String?
+    departure_time String?
+
+    stop    Stop   @relation(fields: [stop_id], references: [id])
+    stop_id String
+
+    sequence Int
+    headsign String?
+
+    @@id(name: "stop_time_id", [trip_id, sequence])
+}
+
+model Shape {
+    id String @id @default(cuid())
+
+    trips  Trip[]
+    points ShapePoint[]
+}
+
+model ShapePoint {
+    shape_id String
+    shape    Shape  @relation(fields: [shape_id], references: [id])
+
+    latitude      Float
+    longitude     Float
+    sequence      Int
+    dist_traveled Int?
+
+    @@id([shape_id, sequence])
+}
+
+model ImportJob {
+    id             String    @id @default(cuid())
+    name           String
+    directory      String?
+    url            String?
+    clearData      Boolean   @default(false)
+    status         JobStatus @default(PENDING)
+    progress       Float     @default(0)
+    currentStep    String?
+    totalSteps     Int       @default(8)
+    completedSteps Int       @default(0)
+    error          String?
+    createdAt      DateTime  @default(now())
+    startedAt      DateTime?
+    completedAt    DateTime?
+    deleted        Boolean   @default(false)
+    deletedAt      DateTime?
+
+    steps JobStep[]
+    logs  JobLog[]
+}
+
+model JobStep {
+    id    String    @id @default(cuid())
+    job   ImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+    jobId String
+
+    name           String
+    status         StepStatus @default(PENDING)
+    progress       Float      @default(0)
+    totalItems     Int?
+    processedItems Int        @default(0)
+    startedAt      DateTime?
+    completedAt    DateTime?
+    error          String?
+
+    @@unique([jobId, name])
+}
+
+model JobLog {
+    id    String    @id @default(cuid())
+    job   ImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+    jobId String
+
+    level     LogLevel @default(INFO)
+    message   String
+    details   String?
+    timestamp DateTime @default(now())
+}
+
+model SystemLog {
+    id        String   @id @default(cuid())
+    timestamp DateTime @default(now())
+
+    level      LogLevel @default(NOTSET)
+    message    String
+    cause      String?
+    resolution String?
+    origin     String?
+}
+
+enum JobStatus {
+    PENDING
+    RUNNING
+    COMPLETED
+    FAILED
+    CANCELLED
+}
+
+enum StepStatus {
+    PENDING
+    RUNNING
+    COMPLETED
+    FAILED
+    SKIPPED
+}
+
+enum LogLevel {
+    NOTSET
+    DEBUG
+    INFO
+    WARN
+    ERROR
+    CRITICAL
+}
+
+model Alert {
+    id          String        @id @default(cuid())
+    title       String
+    description String?
+    severity    AlertSeverity @default(INFO)
+    active      Boolean       @default(true)
+    startTime   DateTime?
+    endTime     DateTime?
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
+
+    agency   Agency? @relation(fields: [agencyId], references: [id])
+    agencyId String?
+
+    route   Route?  @relation(fields: [routeId], references: [id])
+    routeId String?
+
+    stop   Stop?   @relation(fields: [stopId], references: [id])
+    stopId String?
+
+    trip   Trip?   @relation(fields: [tripId], references: [id])
+    tripId String?
+}
+
+enum AlertSeverity {
+    INFO
+    WARNING
+    CRITICAL
+}
+
+model Report {
+    id          String   @id @default(cuid())
+    title       String
+    description String
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Optional relations to Agency, Stop, or Trip
+    agency   Agency? @relation(fields: [agencyId], references: [id])
+    agencyId String?
+
+    stop   Stop?   @relation(fields: [stopId], references: [id])
+    stopId String?
+
+    trip   Trip?   @relation(fields: [tripId], references: [id])
+    tripId String?
+
+    // Optionally, you can add a status or severity field if needed
+}
+
+model Profile {
+    id        String   @id() @default(uuid())
+    name      String?
+    userId    String   @unique
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    user      User     @relation(fields: [userId], references: [id])
+}
+
+model User {
+    id                    String    @id @default(uuid())
+    email                 String    @unique
+    password              String
+    createdAt             DateTime  @default(now())
+    updatedAt             DateTime  @updatedAt
+    refreshToken          String?
+    role                  String    @default("user")
+    refreshTokenCreatedAt DateTime?
+    profile               Profile?
+}
