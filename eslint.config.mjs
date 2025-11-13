@@ -59,7 +59,6 @@ export default defineConfig([
       "import/extensions": 0,
       "@typescript-eslint/no-redeclare": 0,
       "@typescript-eslint/quotes": "off",
-      "@typescript-eslint/comma-dangle": "warn",
     },
   },
 ]);
