@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 
 import LogIn from "./log-in";
+import Register from "./register";
 import { db } from "../../lib/db";
 
 const router = express.Router();
@@ -51,5 +52,6 @@ router.get("/", async (req, res) => {
 });
 
 router.use(LogIn);
+router.use(Register);
 
 export default router;
