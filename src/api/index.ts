@@ -12,9 +12,9 @@ router.get<{}, {}>("/", (req, res) => {
   res.send();
 });
 
-router.use("/agencies", AgenciesRouter);
-router.use("/routes", RoutesRouter);
-router.use("/stops", StopsRouter);
+// router.use("/agencies", AgenciesRouter);
+// router.use("/routes", RoutesRouter);
+// router.use("/stops", StopsRouter);
 router.use("/auth", AuthRouter);
 router.use("/profile", ProfileRouter);
 
