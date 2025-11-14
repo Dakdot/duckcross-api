@@ -32,13 +32,238 @@ class ExternalCache {
 
 const externalCache = new ExternalCache();
 
+type Station = {
+  id: string;
+  name: string;
+  status: "OK" | "WARN" | "DELAY";
+  message: string;
+};
+
+// --- Helpers to parse incidents and map to stations ---
+
+type StationId =
+  | "newark-penn"
+  | "harrison"
+  | "journal-square"
+  | "grove-street"
+  | "exchange-place"
+  | "pavonia-newport"
+  | "hoboken-terminal"
+  | "christopher-street"
+  | "world-trade-center"
+  | "33rd-street"
+  | "23rd-street"
+  | "14th-street";
+
+const STATION_ALIASES: Record<StationId, (string | RegExp)[]> = {
+  "newark-penn": [
+    "Newark Penn",
+    "Newark Penn Station",
+    /\bNWK\b/i,
+    /\bNewark\b/i,
+  ],
+  harrison: [/\bHarrison\b/i],
+  "journal-square": [/\bJSQ\b/i, /Journal Square/i],
+  "grove-street": [/Grove Street/i, /\bGrove St\b/i, /\bGrove\b/i],
+  "exchange-place": [/Exchange Place/i, /\bExchange Pl\b/i],
+  "pavonia-newport": [/Pavonia-Newport/i, /\bNewport\b/i, /\bPavonia\b/i],
+  "hoboken-terminal": [/\bHoboken\b/i, /Hoboken Terminal/i],
+  "christopher-street": [/Christopher Street/i, /\bChristopher St\b/i],
+  "world-trade-center": [/World Trade Center/i, /\bWTC\b/i, /World Trade Ctr/i],
+  "33rd-street": [/\b33(?:rd)?(?:\s|-)St(?:reet)?\b/i, /33rd Street/i],
+  "23rd-street": [/\b23(?:rd)?(?:\s|-)St(?:reet)?\b/i, /23rd Street/i],
+  "14th-street": [/\b14(?:th)?(?:\s|-)St(?:reet)?\b/i, /14th Street/i],
+};
+
+function severityFromText(text: string): Station["status"] {
+  const t = text.toLowerCase();
+  if (
+    /\b(delay|delays|delayed|suspend|suspension|no service|holding|significant)\b/i.test(
+      t
+    )
+  ) {
+    return "DELAY";
+  }
+  if (
+    /\b(elevator|escalator|out of service|maintenance|cleaning|disabled)\b/i.test(
+      t
+    )
+  ) {
+    return "WARN";
+  }
+  // Default to WARN if it's an alert but not clearly a delay
+  return "WARN";
+}
+
+function maxSeverity(
+  a: Station["status"],
+  b: Station["status"]
+): Station["status"] {
+  const order: Station["status"][] = ["OK", "WARN", "DELAY"];
+  return order.indexOf(b) > order.indexOf(a) ? b : a;
+}
+
+function matchStationIds(text: string): StationId[] {
+  const hits: StationId[] = [];
+  for (const [id, aliases] of Object.entries(STATION_ALIASES) as [
+    StationId,
+    (string | RegExp)[]
+  ][]) {
+    if (
+      aliases.some((alias) =>
+        typeof alias === "string"
+          ? new RegExp(`\\b${escapeRegExp(alias)}\\b`, "i").test(text)
+          : alias.test(text)
+      )
+    ) {
+      hits.push(id);
+    }
+  }
+  return hits;
+}
+
+function escapeRegExp(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 router.get("/", async (req, res) => {
   try {
     const entry = await externalCache.get(
       "https://www.panynj.gov/bin/portauthority/everbridge/incidents?status=All&department=Path"
     );
     if (entry.contentType) res.setHeader("Content-Type", entry.contentType);
-    res.send(entry.body);
+
+    let stations: Station[] = [
+      {
+        id: "newark-penn",
+        name: "Newark Penn Station",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "harrison",
+        name: "Harrison",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "journal-square",
+        name: "Journal Square",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "grove-street",
+        name: "Grove Street",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "exchange-place",
+        name: "Exchange Place",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "pavonia-newport",
+        name: "Pavonia-Newport",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "hoboken-terminal",
+        name: "Hoboken Terminal",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "christopher-street",
+        name: "Christopher Street",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "world-trade-center",
+        name: "World Trade Center",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "33rd-street",
+        name: "33rd Street",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "23rd-street",
+        name: "23rd Street",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "14th-street",
+        name: "14th Street",
+        status: "OK",
+        message: "Regular service",
+      },
+    ];
+
+    // Parse remote JSON body safely
+    let incidents: any[] = [];
+    try {
+      const text = entry.body.toString("utf8");
+      const json = JSON.parse(text);
+      if (json && Array.isArray(json.data)) incidents = json.data;
+    } catch {
+      // Ignore parse errors; keep defaults
+    }
+
+    // Update stations based on incidents
+    for (const item of incidents) {
+      const msg = item?.incidentMessage;
+      if (!msg) continue;
+
+      // Prefer the detailed preMessage; fall back to subject
+      const fullText = [msg.preMessage, msg.subject]
+        .filter(Boolean)
+        .join(" - ")
+        .trim();
+      if (!fullText) continue;
+
+      const severity = severityFromText(fullText);
+      const matched = matchStationIds(fullText);
+
+      // If message seems system-wide and no station matched, optionally apply to all
+      const systemWide =
+        matched.length === 0 &&
+        /\b(system(?:-|\s)?wide|all stations|entire (?:path|line))\b/i.test(
+          fullText
+        );
+
+      const applyIds =
+        matched.length > 0
+          ? matched
+          : systemWide
+          ? (stations.map((s) => s.id) as StationId[])
+          : [];
+
+      for (const id of applyIds) {
+        const s = stations.find((x) => x.id === id);
+        if (!s) continue;
+
+        // Upgrade severity if needed
+        s.status = maxSeverity(s.status, severity);
+
+        // Append/replace message
+        if (s.message === "Regular service") {
+          s.message = fullText;
+        } else if (!s.message.includes(fullText)) {
+          s.message = `${s.message} | ${fullText}`;
+        }
+      }
+    }
+
+    res.json(stations);
   } catch (err) {
     res.status(502).json({ error: "Failed to fetch remote URL" });
   }
