@@ -5,6 +5,7 @@ import RoutesRouter from "./routes";
 import StopsRouter from "./stops";
 import AuthRouter from "./auth";
 import ProfileRouter from "./profile";
+import DataRouter from "./data";
 
 const router = express.Router();
 
@@ -17,5 +18,6 @@ router.get<{}, {}>("/", (req, res) => {
 // router.use("/stops", StopsRouter);
 router.use("/auth", AuthRouter);
 router.use("/profile", ProfileRouter);
+router.use("/data", DataRouter);
 
 export default router;
