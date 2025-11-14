@@ -1,9 +1,10 @@
 import express from "express";
 
-import agencies from "./agencies";
-import routes from "./routes";
-import stops from "./stops";
-import auth from "./auth";
+import AgenciesRouter from "./agencies";
+import RoutesRouter from "./routes";
+import StopsRouter from "./stops";
+import AuthRouter from "./auth";
+import ProfileRouter from "./profile";
 
 const router = express.Router();
 
@@ -11,9 +12,10 @@ router.get<{}, {}>("/", (req, res) => {
   res.send();
 });
 
-router.use("/agencies", agencies);
-router.use("/routes", routes);
-router.use("/stops", stops);
-router.use("/auth", auth);
+router.use("/agencies", AgenciesRouter);
+router.use("/routes", RoutesRouter);
+router.use("/stops", StopsRouter);
+router.use("/auth", AuthRouter);
+router.use("/profile", ProfileRouter);
 
 export default router;

@@ -30,9 +30,6 @@ router.get("/", async (req, res) => {
       where: {
         email,
       },
-      include: {
-        profile: true,
-      },
     });
 
     if (!user) return res.status(404).json({ error: "User not found." });

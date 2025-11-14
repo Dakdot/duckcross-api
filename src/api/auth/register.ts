@@ -39,6 +39,22 @@ router.post("/register", async (req, res) => {
         password: hashedPassword,
         refreshToken,
         refreshTokenCreatedAt: new Date(),
+        profile: {
+          create: {
+            needsWelcome: true,
+            notificationSchedule: {
+              create: {
+                monday: true,
+                tuesday: true,
+                wednesday: true,
+                thursday: true,
+                friday: true,
+                saturday: false,
+                sunday: false,
+              },
+            },
+          },
+        },
       },
     });
 
