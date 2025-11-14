@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 const router = express.Router();
 
 router.post("/refresh", (req, res) => {
-  const refreshToken = req.cookies("DC_REFRESH_TOKEN");
+  const refreshToken = req.cookies["DC_REFRESH_TOKEN"];
 
   if (!refreshToken) return res.status(400).json({ error: "No refresh token" });
 
