@@ -53,7 +53,8 @@ type StationId =
   | "world-trade-center"
   | "33rd-street"
   | "23rd-street"
-  | "14th-street";
+  | "14th-street"
+  | "9th-street";
 
 const STATION_ALIASES: Record<StationId, (string | RegExp)[]> = {
   "newark-penn": [
@@ -73,6 +74,7 @@ const STATION_ALIASES: Record<StationId, (string | RegExp)[]> = {
   "33rd-street": [/\b33(?:rd)?(?:\s|-)St(?:reet)?\b/i, /33rd Street/i],
   "23rd-street": [/\b23(?:rd)?(?:\s|-)St(?:reet)?\b/i, /23rd Street/i],
   "14th-street": [/\b14(?:th)?(?:\s|-)St(?:reet)?\b/i, /14th Street/i],
+  "9th-street": [/\b9(?:th)?(?:\s|-)St(?:reet)?\b/i, /9th Street/i, /\b9th\b/i],
 };
 
 function severityFromText(text: string): Station["status"] {
@@ -203,6 +205,12 @@ router.get("/", async (req, res) => {
       {
         id: "14th-street",
         name: "14th Street",
+        status: "OK",
+        message: "Regular service",
+      },
+      {
+        id: "9th-street",
+        name: "9th Street",
         status: "OK",
         message: "Regular service",
       },
