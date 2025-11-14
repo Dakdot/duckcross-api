@@ -168,7 +168,7 @@ router.get("/", async (req, res) => {
       },
       {
         id: "pavonia-newport",
-        name: "Pavonia-Newport",
+        name: "Newport",
         status: "OK",
         message: "Regular service",
       },
