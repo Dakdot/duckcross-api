@@ -37,6 +37,11 @@ type Station = {
   name: string;
   status: "OK" | "WARN" | "DELAY";
   message: string;
+  lines: {
+    id: string;
+    color: string;
+    name: string;
+  }[];
 };
 
 // --- Helpers to parse incidents and map to stations ---
@@ -76,6 +81,40 @@ const STATION_ALIASES: Record<StationId, (string | RegExp)[]> = {
   "14th-street": [/\b14(?:th)?(?:\s|-)St(?:reet)?\b/i, /14th Street/i],
   "9th-street": [/\b9(?:th)?(?:\s|-)St(?:reet)?\b/i, /9th Street/i, /\b9th\b/i],
 };
+
+// --- Line metadata and station line assignments ---
+
+type LineId = "NWK-WTC" | "HOB-33" | "HOB-WTC" | "JSQ-33";
+
+const LINE_COLORS: Record<LineId, string> = {
+  // Converted from rgb() to hex
+  "NWK-WTC": "#D93A30", // rgb(217, 58, 48)
+  "HOB-33": "#2B85BB", // rgb(43, 133, 187)  (HOB-33rd)
+  "HOB-WTC": "#65C100", // rgb(101, 193, 0)  (HOB_WTC)
+  "JSQ-33": "#FF9900", // rgb(255, 153, 0)  (JSQ-33rd)
+};
+
+const STATION_LINE_MAP: Record<StationId, LineId[]> = {
+  "newark-penn": ["NWK-WTC"],
+  harrison: ["NWK-WTC"], // inferred
+  "journal-square": ["NWK-WTC", "JSQ-33"],
+  "grove-street": ["NWK-WTC", "JSQ-33"],
+  "exchange-place": ["HOB-WTC", "NWK-WTC"],
+  "pavonia-newport": ["HOB-WTC", "JSQ-33"],
+  "hoboken-terminal": ["HOB-33", "HOB-WTC"],
+  "christopher-street": ["HOB-33", "JSQ-33"],
+  "world-trade-center": ["HOB-WTC", "NWK-WTC"],
+  "33rd-street": ["HOB-33", "JSQ-33"],
+  "23rd-street": ["HOB-33", "JSQ-33"],
+  "14th-street": ["HOB-33", "JSQ-33"],
+  "9th-street": ["HOB-33", "JSQ-33"],
+};
+
+function buildLines(
+  lineIds: LineId[]
+): { id: string; color: string; name: string }[] {
+  return lineIds.map((id) => ({ id, color: LINE_COLORS[id], name: id }));
+}
 
 function severityFromText(text: string): Station["status"] {
   const t = text.toLowerCase();
@@ -141,78 +180,91 @@ router.get("/", async (req, res) => {
         name: "Newark Penn Station",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["newark-penn"]),
       },
       {
         id: "harrison",
         name: "Harrison",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["harrison"] ?? []),
       },
       {
         id: "journal-square",
         name: "Journal Square",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["journal-square"]),
       },
       {
         id: "grove-street",
         name: "Grove Street",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["grove-street"]),
       },
       {
         id: "exchange-place",
         name: "Exchange Place",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["exchange-place"]),
       },
       {
         id: "pavonia-newport",
         name: "Newport",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["pavonia-newport"]),
       },
       {
         id: "hoboken-terminal",
         name: "Hoboken Terminal",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["hoboken-terminal"]),
       },
       {
         id: "christopher-street",
         name: "Christopher Street",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["christopher-street"]),
       },
       {
         id: "world-trade-center",
         name: "World Trade Center",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["world-trade-center"]),
       },
       {
         id: "33rd-street",
         name: "33rd Street",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["33rd-street"]),
       },
       {
         id: "23rd-street",
         name: "23rd Street",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["23rd-street"]),
       },
       {
         id: "14th-street",
         name: "14th Street",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["14th-street"]),
       },
       {
         id: "9th-street",
         name: "9th Street",
         status: "OK",
         message: "Regular service",
+        lines: buildLines(STATION_LINE_MAP["9th-street"]),
       },
     ];
 
