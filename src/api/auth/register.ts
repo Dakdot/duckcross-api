@@ -2,6 +2,7 @@
 // Created by Thiago on 11/12/25
 
 import express from "express";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db } from "../../lib/db";
 
@@ -12,10 +13,14 @@ router.post("/register", async (req, res) => {
     if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET)
       throw new Error("No JWT secret was defined!");
 
+    console.log(JSON.stringify(req.body));
+
     const { email, password } = req.body;
 
     if (!email || !password)
       return res.status(400).json({ error: "Missing fields" });
+
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const accessToken = jwt.sign(
       { email },
@@ -31,7 +36,7 @@ router.post("/register", async (req, res) => {
     const user = await db.user.create({
       data: {
         email,
-        password,
+        password: hashedPassword,
         refreshToken,
         refreshTokenCreatedAt: new Date(),
       },
